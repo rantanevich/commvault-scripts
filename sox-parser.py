@@ -59,9 +59,8 @@ def main():
                             f'failed_folders={job_failed_folders}')
 
                 if job_status in ['running', 'waiting']:
-                    percent = job['percentComplete']
-                    issue['comment'] = make_comment(client_name, job_id,
-                                                    f'Progress: {percent}%')
+                    message = f'Progress: {job["percentComplete"]}%'
+                    issue['comment'] = make_comment(issue, message)
 
                 elif job_status in ['pending', 'failed', 'killed',
                                     'suspended', 'failed to start']:
@@ -78,24 +77,23 @@ def main():
                                        f'{job_failed_files} Files')
 
                 elif (job['appTypeName'] == 'Virtual Server' and
-                        job_status in ['completed w/ one or more errors',
-                                       'running']):
+                        job_status == 'completed w/ one or more errors'):
                     issue['reason'] = job_status
-                    job_details = job_controller.get(job_id).details['jobDetail']
-                    vms = job_details['clientStatusInfo']['vmStatus']
+                    job_detail = job_controller.get(job_id).details['jobDetail']
+                    vms = job_detail['clientStatusInfo']['vmStatus']
 
                     # After restoring VM with new name, Commvault renames old client name
                     # For example, src: srv-tibload-001, dest: srv-tibload-001_20102020
                     client_vm_name = client_name.split('_')[0]
 
-                    is_found = False
+                    vm_found = False
                     for vm in vms:
                         if vm['vmName'].startswith(client_vm_name):
-                            is_found = True
+                            vm_found = True
                             issue['reason'] = vm['FailureReason']
                             break
 
-                    if not is_found:
+                    if not vm_found:
                         logger.error(f'{client_vm_name} is not found '
                                      f'in the job ({job_id})')
 
@@ -114,25 +112,24 @@ def main():
                         if error.lower() in issue['reason'].lower():
                             link = config.SETTINGS['wiki'] + '/'
                             link += '+'.join(error.split())
-                            issue['comment'] = make_comment(client_name, job_id,
-                                                            f'[{error}|{link}]')
+                            message = f'[{error}|{link}]'
+                            issue['comment'] = make_comment(issue, message)
                             break
 
                 issues.append(issue)
 
         comment = ''
-        can_be_closed = True
+        issue_can_be_closed = True
         for issue in issues:
             if not issue['comment']:
-                can_be_closed = False
-                reason = make_comment(issue['client'], issue['job_id'],
-                                      issue['reason'])
+                issue_can_be_closed = False
+                reason = make_comment(issue, issue['reason'])
                 comment += f'{reason}\n'
             else:
                 comment += f'{issue["comment"]}\n'
 
         if not comment:
-            comment = 'Проблемы не обнаружены'
+            comment = 'No problem was found'
 
         jql = (f'project = SOX AND '
                f'summary ~ "JobSummary_\\\\[{service_name}\\\\]" AND '
@@ -144,16 +141,16 @@ def main():
             jira.add_comment(issue.key, comment)
             comment = comment.replace('\n', '|')
 
-            if can_be_closed:
+            if issue_can_be_closed:
                 # list of transitions /rest/api/2/issue/${issueIdOrKey}/transitions
                 jira.transition_issue(issue=issue.key, transition='Close')
-                logger.info(f'{service_name} ({issue.key}) is closed')
+                logger.info(f'{service_name} ({issue.key}) has been closed')
         else:
-            logger.info(f'{service_name} ({issue.key}) is already closed')
+            logger.info(f'{service_name} ({issue.key}) has already been closed')
 
 
-def make_comment(subject, subject_id, message):
-    return f'{subject} ({subject_id}): {message}'
+def make_comment(issue, message):
+    return f'{issue["client"]} ({issue["job_id"]}): {message}'
 
 
 if __name__ == '__main__':
