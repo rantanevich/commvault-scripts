@@ -1,10 +1,8 @@
-import re
-from datetime import datetime
-
 from jira import JIRA
 
 import config
 from config import logger, email
+from structures import Issue
 
 
 JIRA_PROJECT = 'SYSINFR'
@@ -18,39 +16,13 @@ logger.add(sink=config.LOG_DIR / 'active-tasks.log',
 @logger.catch
 def main():
     jira = JIRA(**config.JIRA)
-    jql = (f'project = {JIRA_PROJECT} and type = "Backup & Restore" and '
-           f'status not in (Closed, Rejected, Resolved)')
+    jql = (f'project = {JIRA_PROJECT} AND type = "Backup & Restore" AND '
+           f'status NOT IN (Closed, Rejected, Resolved)')
 
     opened_issues = []
     for issue in jira.search_issues(jql, maxResults=False):
-        created_date = datetime.strptime(issue.fields.created,
-                                         '%Y-%m-%dT%H:%M:%S.000%z')
-        created_date = created_date.strftime('%d.%m.%Y')
-
-        comments = []
-        for comment in jira.comments(issue):
-            comment.body = comment.body.replace('\r\n', ' ')
-            comment.body = comment.body.replace('\n', ' ')
-            comment.body = re.sub('{.+?}', '', comment.body)
-            comment.body = re.sub('\\xa0', ' ', comment.body)
-
-            if hasattr(comment, 'author'):
-                if comment.author.displayName == 'A1 JIRA': continue
-                message = f'({comment.author.displayName}): {comment.body}'
-            else:
-                message = f'(Anonymous): {comment.body}'
-            comments.append(message)
-
-        opened_issues.append({
-            'key': issue.key,
-            'created': created_date,
-            'summary': issue.fields.summary,
-            'assignee': issue.fields.assignee.displayName,
-            'reporter': issue.fields.reporter.displayName,
-            'status': issue.fields.status.name,
-            'comments': comments,
-            'href': f'{config.SETTINGS["jira"]}/browse/{issue.key}'
-        })
+        comments = jira.comments(issue)
+        opened_issues.append(Issue(issue, comments))
 
     if opened_issues:
         subject = f'JIRA ({JIRA_PROJECT}) | Active tasks'
@@ -60,7 +32,7 @@ def main():
         email.notify(subject=subject, message=body)
         logger.info(f'{len(opened_issues)} tasks are found')
     else:
-        logger.info('Nothing is found')
+        logger.info('nothing is found')
 
 
 if __name__ == '__main__':
