@@ -1,0 +1,21 @@
+---
+commvault:
+  api: http://example.com/webconsole/api
+  lookup_time: 24
+  jobs_limit: 10000
+jira: https://jira.example.com
+wiki: https:/wiki.example.com/display/IDG
+known_errors:
+  - "Unable to quiesce guest file system during snapshot creation"
+  - "Found a multi-segment swap partition on virtual machine"
+  - "Another backup is running"
+  - "VDI timeout attempts expired for SQL Database"
+  - "RMAN returned WARNING during backup operation"
+  - "Backup activity for subclient is disabled"
+sox_services:
+  - "MIM"
+  - "Active Directory"
+  - "System Center: Orchestrator"
+logging:
+  rotation: "1 MB"
+  format: "{time} | {level} | {name}:{line} - {message}"
