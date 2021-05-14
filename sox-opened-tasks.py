@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from collections import defaultdict
 
 from jira import JIRA
 
@@ -7,9 +8,10 @@ import config
 from config import logger, email
 
 
-JIRA_PROJECT = 'SYSINFR'
+JIRA_PROJECT = 'SOX'
+LOOKUP_DAYS = 7
 
-logger.add(sink=config.LOG_DIR / 'active-tasks.log',
+logger.add(sink=config.LOG_DIR / 'sox-opened-tasks.log',
            rotation=config.SETTINGS['logging']['rotation'],
            format=config.SETTINGS['logging']['format'],
            level='INFO')
@@ -18,11 +20,25 @@ logger.add(sink=config.LOG_DIR / 'active-tasks.log',
 @logger.catch
 def main():
     jira = JIRA(**config.JIRA)
-    jql = (f'project = {JIRA_PROJECT} and type = "Backup & Restore" and '
-           f'status not in (Closed, Rejected, Resolved)')
+    jql = (f'project={JIRA_PROJECT} AND summary ~ JobSummary AND status = Open '
+           f'AND created > startOfDay(-{LOOKUP_DAYS}) AND created < now() '
+           f'ORDER BY key DESC')
 
-    opened_issues = []
+    opened_issues = defaultdict(list)
     for issue in jira.search_issues(jql, maxResults=False):
+        services = (config.SETTINGS['sox_services'] +
+                    config.SETTINGS['admin_services'])
+        for service_name in services:
+            if service_name in issue.fields.summary:
+                username = issue.fields.assignee.name
+                domain = config.SETTINGS['smtp']['domain']
+                email_address = f'{username}@{domain}'
+                issue.fields.summary = service_name
+                break
+        else:
+            logger.error(f'there is unknown service ({issue.fields.summary})')
+
+
         created_date = datetime.strptime(issue.fields.created,
                                          '%Y-%m-%dT%H:%M:%S.000%z')
         created_date = created_date.strftime('%d.%m.%Y')
@@ -41,7 +57,7 @@ def main():
                 message = f'(Anonymous): {comment.body}'
             comments.append(message)
 
-        opened_issues.append({
+        opened_issues[email_address].append({
             'key': issue.key,
             'created': created_date,
             'summary': issue.fields.summary,
@@ -52,14 +68,15 @@ def main():
             'href': f'{config.SETTINGS["jira"]}/browse/{issue.key}'
         })
 
-    if opened_issues:
-        subject = f'JIRA ({JIRA_PROJECT}) | Active tasks'
-        body = config.SYSINFR_TEMPLATE.render(project=JIRA_PROJECT,
-                                              issues=opened_issues,
-                                              wiki=config.SETTINGS['wiki'])
+    for email_address, issues in opened_issues.items():
+        subject = f'{issues[0]["summary"]} | Backup monitoring'
+        body = config.SOX_TEMPLATE.render(project=JIRA_PROJECT,
+                                          issues=issues,
+                                          wiki=config.SETTINGS['wiki'])
         email.notify(subject=subject, message=body)
         logger.info(f'{len(opened_issues)} tasks are found')
-    else:
+
+    if not opened_issues:
         logger.info('Nothing is found')
 
 

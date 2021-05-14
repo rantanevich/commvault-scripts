@@ -10,6 +10,7 @@ smtp:
   port: 25
   tls: yes
   html: yes
+  domain: example.com
 jira: https://jira.example.com
 wiki: https:/wiki.example.com
 known_errors:
@@ -23,6 +24,9 @@ sox_services:
   - "MIM"
   - "Active Directory"
   - "System Center: Orchestrator"
+admin_services:
+  - "Daily report"
+  - "Oracle Full Database Backup"
 logging:
   rotation: "1 MB"
   format: "{time} | {level} | {name}:{line} - {message}"
