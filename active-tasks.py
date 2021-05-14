@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+'''
+It looks for an unresolved Jira issues in JIRA_PROJECT
+and notifies backup admins if there are.
+'''
 from jira import JIRA
 
 import config

@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+'''
+It looks for opened Jira issues in JIRA_PROJECT for LOOKUP_DAYS
+and notifies service owner and backup admins if there are.
+'''
 from collections import defaultdict
 
 from jira import JIRA

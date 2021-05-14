@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import re
 from datetime import datetime
 
@@ -5,6 +6,7 @@ from config import SETTINGS
 
 
 class Issue:
+    'Structure containing information about a Jira issue'
     def __init__(self, issue, comments):
         self.key = issue.key
         self.created = self._parse_created(issue.fields.created)
@@ -16,10 +18,12 @@ class Issue:
         self.href = f'{SETTINGS["jira"]}/browse/{issue.key}'
 
     def _parse_created(self, created):
+        '''Converts Jira datetime format to dd.mm.YYYY'''
         date = datetime.strptime(created, '%Y-%m-%dT%H:%M:%S.000%z')
         return date.strftime('%d.%m.%Y')
 
     def _parse_comments(self, comments):
+        '''Parses multiline Jira comments to one line strings'''
         items = []
         for comment in comments:
             comment.body = comment.body.replace('\r\n', ' ')

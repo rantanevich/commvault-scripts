@@ -31,8 +31,6 @@ SOX_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text())
 SYSINFR_TEMPLATE_FILE = BASE_DIR / 'templates' / 'sysinfr.html.j2'
 SYSINFR_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text())
 
-# REQUEST_TIMEOUT = SETTINGS['timeouts']['request']
-
 JIRA = {
     'server': SETTINGS['jira'],
     'basic_auth': (os.getenv('JIRA_USERNAME'), os.getenv('JIRA_PASSWORD')),

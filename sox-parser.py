@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+'''
+It parses backup jobs for each SOX-services, leaves a comment in the Jira issue
+and closes the issue if it doesn't have critical/unknown errors.
+'''
+
 import re
 
 from jira import JIRA
