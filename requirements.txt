@@ -1,4 +1,5 @@
 cvpysdk==11.23
+Jinja2==3.0.0
 jira==3.0.1
 loguru==0.5.3
 notifiers==1.2.1

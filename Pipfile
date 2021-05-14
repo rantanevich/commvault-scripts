@@ -10,6 +10,7 @@ pyyaml = "*"
 loguru = "*"
 notifiers = "*"
 python-dotenv = "*"
+jinja2 = "*"
 
 [dev-packages]
 

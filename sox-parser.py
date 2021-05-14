@@ -110,7 +110,7 @@ def main():
                 if issue['reason'] and not issue['comment']:
                     for error in config.SETTINGS['known_errors']:
                         if error.lower() in issue['reason'].lower():
-                            link = config.SETTINGS['wiki'] + '/'
+                            link = config.SETTINGS['wiki'] + '/display/IDG/'
                             link += '+'.join(error.split())
                             message = f'[{error}|{link}]'
                             issue['comment'] = make_comment(issue, message)

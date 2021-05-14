@@ -1,10 +1,17 @@
 ---
 commvault:
-  api: http://example.com/webconsole/api
+  api: http://commcell.example.com/webconsole/api
   lookup_time: 24
   jobs_limit: 10000
+smtp:
+  from: backup_service@example.com
+  to: [backup_service@example.com]
+  host: smtp.example.com
+  port: 25
+  tls: yes
+  html: yes
 jira: https://jira.example.com
-wiki: https:/wiki.example.com/display/IDG
+wiki: https:/wiki.example.com
 known_errors:
   - "Unable to quiesce guest file system during snapshot creation"
   - "Found a multi-segment swap partition on virtual machine"

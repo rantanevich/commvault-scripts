@@ -2,10 +2,13 @@
 import os
 import urllib3
 from pathlib import Path
+from functools import partial
 
 import yaml
 from dotenv import load_dotenv
+from jinja2 import Template
 from loguru import logger
+from notifiers import get_notifier
 from notifiers.logging import NotificationHandler
 
 
@@ -21,6 +24,12 @@ LOG_DIR.mkdir(exist_ok=True)
 
 SETTINGS_FILE = BASE_DIR / 'settings.yml'
 SETTINGS = yaml.safe_load(SETTINGS_FILE.open())
+
+SOX_TEMPLATE_FILE = BASE_DIR / 'templates' / 'sox.html.j2'
+SOX_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text())
+
+SYSINFR_TEMPLATE_FILE = BASE_DIR / 'templates' / 'sysinfr.html.j2'
+SYSINFR_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text())
 
 # REQUEST_TIMEOUT = SETTINGS['timeouts']['request']
 
@@ -47,6 +56,9 @@ SMTP_PARAMS = {
     'password': os.getenv('SMTP_PASSWORD'),
     'html': SETTINGS['smtp']['html'],
 }
+
+email = get_notifier('email')
+email.notify = partial(email.notify, **SMTP_PARAMS)
 
 logger.add(sink=NotificationHandler('email', defaults=SMTP_PARAMS),
            format=SETTINGS['logging']['format'],
