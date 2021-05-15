@@ -39,6 +39,8 @@ def main():
     else:
         logger.info('nothing is found')
 
+    jira.close()
+
 
 if __name__ == '__main__':
     main()

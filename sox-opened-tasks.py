@@ -58,6 +58,8 @@ def main():
     if not opened_issues:
         logger.info('nothing is found')
 
+    jira.close()
+
 
 if __name__ == '__main__':
     main()

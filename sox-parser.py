@@ -154,6 +154,9 @@ def main():
         else:
             logger.info(f'{service_name} ({issue.key}) has already been closed')
 
+    jira.close()
+    commvault.logout()
+
 
 def make_comment(issue, message):
     return f'{issue["client"]} ({issue["job_id"]}): {message}'
