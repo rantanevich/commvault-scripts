@@ -142,6 +142,10 @@ cython_debug/
 
 # project settings
 /settings.yml
+/services.ini
 
 # logs folder
 logs/
+
+# reports of service settings
+reports/

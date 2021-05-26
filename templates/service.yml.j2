@@ -1,0 +1,72 @@
+---
+# Report generated on {{ current_time.strftime('%d/%m/%Y %T') }}
+service: {{ service_name }}
+clients:
+  {%- for server in servers %}
+  - hostname: {{ server.hostname }}
+    os: {{ server.os }}
+    agents:
+      {%- for agent_name in server.agents %}
+      - name: {{ agent_name }}
+        {%- if 'backupsets' in server.agents[agent_name] %}
+          {%- set collection_name = 'backupsets' %}
+          {%- set collection = server.agents[agent_name]['backupsets'] %}
+        {%- else %}
+          {%- set collection_name = 'instances' %}
+          {%- set collection = server.agents[agent_name]['instances'] %}
+        {%- endif %}
+        {{ collection_name }}:
+          {%- for item_name in collection %}
+          - name: {{ item_name }}
+            subclients:
+              {%- for subclient in collection[item_name] %}
+              - name: {{ subclient.name }}
+                status: {{ subclient.status }}
+                {%- if subclient.last_job %}
+                lastBackup:
+                  jobId: {{ subclient.last_job.id }}
+                  status: {{ subclient.last_job.status }}
+                  started: {{ subclient.last_job.started }}
+                  finished: {{ subclient.last_job.finished }}
+                {%- else %}
+                lastBackup: {}
+                {%- endif %}
+                {%- if subclient.content %}
+                content:
+                  {%- if subclient.content.include %}
+                  include:
+                    {%- for item in subclient.content.include %}
+                    - {{ item }}
+                    {%- endfor %}
+                  {%- else %}
+                  include: []
+                  {%- endif %}
+                  {%- if subclient.content.exclude %}
+                  exclude:
+                    {%- for item in subclient.content.exclude %}
+                    - {{ item }}
+                    {%- endfor %}
+                  {%- else %}
+                  exclude: []
+                  {%- endif %}
+                {%- endif %}
+                {%- if subclient.storage_policy %}
+                storagePolicy:
+                  name: {{ subclient.storage_policy.name }}
+                  retention: {{ subclient.storage_policy.retention }}
+                {%- else %}
+                storagePolicy: {}
+                {%- endif %}
+                {%- if subclient.schedules %}
+                schedules:
+                  {%- for schedule in subclient.schedules %}
+                  - type: {{ schedule.type }}
+                    pattern: {{ schedule.pattern }}
+                  {%- endfor %}
+                {%- else %}
+                schedules: []
+                {%- endif %}
+              {%- endfor %}
+          {%- endfor %}
+      {%- endfor %}
+  {%- endfor %}
