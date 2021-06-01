@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Take clients from chosen Client Group and create a high-level view of the clients' settings.
+Takes clients from chosen Client Group and create a high-level view of the clients' settings.
 '''
 import re
 import socket
@@ -8,12 +8,14 @@ from datetime import datetime
 from base64 import b64encode
 from configparser import ConfigParser
 from collections import defaultdict
-from functools import partial
 from json.decoder import JSONDecodeError
 
-import requests
 from loguru import logger
 from jinja2 import Template
+from requests import Session
+from requests.adapters import HTTPAdapter
+from urllib.parse import urljoin
+from urllib3.util.retry import Retry
 
 import config
 
@@ -27,6 +29,11 @@ REPORTS_DIR = config.BASE_DIR / 'reports'
 REPORTS_DIR.mkdir(exist_ok=True)
 
 REQUEST_TIMEOUT = 30
+RETRY_STRATEGY = Retry(
+    total=3,
+    backoff_factor=2,
+    status_forcelist=[429, 500, 502, 503, 504]
+)
 
 BACKUP_LEVEL = {
     4: 'SynFull',
@@ -34,6 +41,35 @@ BACKUP_LEVEL = {
     2: 'Incremental',
     1: 'Full',
 }
+
+
+class BaseUrlSession(Session):
+    '''A Session with a URL that all requests will use as a base'''
+
+    def __init__(self, base_url):
+        self.base_url = base_url
+        Session.__init__(self)
+
+    def request(self, method, url, *args, **kwargs):
+        '''Send the request after generating the complete URL'''
+        url = self.create_url(url)
+        return Session.request(self, method, url, *args, **kwargs)
+
+    def create_url(self, url):
+        '''Create the URL based off the partial path'''
+        return urljoin(self.base_url, url)
+
+
+class TimeoutHTTPAdapter(HTTPAdapter):
+    '''HTTPAdapter with a default timeout'''
+
+    def __init__(self, *args, **kwargs):
+        self.timeout = kwargs.pop('timeout', REQUEST_TIMEOUT)
+        HTTPAdapter.__init__(self, *args, **kwargs)
+
+    def send(self, request, **kwargs):
+        kwargs['timeout'] = kwargs.get('timeout', self.timeout)
+        return HTTPAdapter.send(self, request, **kwargs)
 
 
 @logger.catch
@@ -193,8 +229,12 @@ def main():
 
 def commvault_login():
     '''Make login request'''
-    session = requests.Session()
-    session.request = partial(session.request, timeout=REQUEST_TIMEOUT)
+    hostname = config.COMMVAULT['webconsole_hostname']
+    adapter = TimeoutHTTPAdapter(max_retries=RETRY_STRATEGY)
+
+    session = BaseUrlSession(f'http://{hostname}/webconsole/api/')
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
     session.headers.update({'Accept': 'application/json',
                             'Content-Type': 'application/json'})
 
@@ -217,15 +257,13 @@ def commvault_logout(session):
 
 def query_api(session, method, path, payload=None):
     '''Make the API request to the Commcell'''
-    url = f'http://{config.COMMVAULT["webconsole_hostname"]}/webconsole/api/{path}'
-
     if method == 'POST' and not payload:
         session.headers['Content-Type'] = 'application/xml'
     else:
         session.headers['Content-Type'] = 'application/json'
 
     try:
-        response = session.request(method, url, json=payload)
+        response = session.request(method, path, json=payload)
         response.raise_for_status()
         return response.json()
     except JSONDecodeError:
