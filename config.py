@@ -26,10 +26,10 @@ SETTINGS_FILE = BASE_DIR / 'settings.yml'
 SETTINGS = yaml.safe_load(SETTINGS_FILE.open())
 
 SOX_TEMPLATE_FILE = BASE_DIR / 'templates' / 'sox.html.j2'
-SOX_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text())
+SOX_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text(encoding='utf8'))
 
 SYSINFR_TEMPLATE_FILE = BASE_DIR / 'templates' / 'sysinfr.html.j2'
-SYSINFR_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text())
+SYSINFR_TEMPLATE = Template(SOX_TEMPLATE_FILE.read_text(encoding='utf8'))
 
 JIRA = {
     'server': SETTINGS['jira'],
@@ -58,6 +58,7 @@ SMTP_PARAMS = {
 email = get_notifier('email')
 email.notify = partial(email.notify, **SMTP_PARAMS)
 
+logger.remove()
 logger.add(sink=NotificationHandler('email', defaults=SMTP_PARAMS),
            format=SETTINGS['logging']['format'],
            level='ERROR')

@@ -23,7 +23,7 @@ import config
 CONFIG_FILE = config.BASE_DIR / 'services.ini'
 
 TEMPLATE_FILE = config.BASE_DIR / 'templates' / 'service.yml.j2'
-TEMPLATE = Template(TEMPLATE_FILE.read_text())
+TEMPLATE = Template(TEMPLATE_FILE.read_text(encoding='utf8'))
 
 REPORTS_DIR = config.BASE_DIR / 'reports'
 REPORTS_DIR.mkdir(exist_ok=True)
@@ -221,7 +221,8 @@ def main():
         report_file = REPORTS_DIR / f'{service_name}_{current_time.strftime("%Y%m%d%H%M")}.yml'
         report_file.write_text(TEMPLATE.render(current_time=current_time,
                                                service_name=service_name,
-                                               servers=servers))
+                                               servers=servers),
+                               encoding='utf8')
         logger.info(f'{report_file} is created')
     commvault_logout(session)
     logger.info('Commvault session is closed')
@@ -280,7 +281,7 @@ def get_services_from_file():
     '''Extract a list of services from configuration file'''
     config = ConfigParser(allow_no_value=True)
     config.optionxform = str    # case-sensitive
-    config.read(CONFIG_FILE)
+    config.read(CONFIG_FILE, encoding='utf8')
     return [service for service in config['services']]
 
 
