@@ -79,7 +79,7 @@ def main():
                 elif (job_status == 'completed' and
                         (job_failed_files or job_failed_folders)):
                     issue['reason'] = (f'Failed to back up: '
-                                       f'{job_failed_folders} Folders, ',
+                                       f'{job_failed_folders} Folders, '
                                        f'{job_failed_files} Files')
 
                 elif (job['appTypeName'] == 'Virtual Server' and
