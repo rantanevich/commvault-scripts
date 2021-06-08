@@ -47,7 +47,7 @@ def main():
         opened_issues[email_address].append(Issue(issue, comments))
 
     for email_address, issues in opened_issues.items():
-        subject = f'{issues[0]["summary"]} | Backup monitoring'
+        subject = f'{issues[0].summary} | Backup monitoring'
         body = config.SOX_TEMPLATE.render(project=JIRA_PROJECT,
                                           issues=issues,
                                           wiki=config.SETTINGS['wiki'])
